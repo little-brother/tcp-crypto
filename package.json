@@ -1,0 +1,11 @@
+{
+  "name": "tcp-crypto",
+  "version": "0.9",
+  "keywords" : ["TCP", "crypto"], 
+  "author": {
+    "email": "lb.im@ya.ru"
+  },
+  "main": "tcp-crypto.js",
+  "dependencies": {},
+  "homepage" : "http://little-brother.ru"	
+}
