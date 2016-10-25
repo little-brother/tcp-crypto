@@ -11,8 +11,6 @@
   },
   "main": "tcp-crypto.js",
   "dependencies": {},
-  {
-    "license" : "MIT" 
-  },
+  "license" : "MIT",
   "homepage" : "http://little-brother.ru"	
 }
