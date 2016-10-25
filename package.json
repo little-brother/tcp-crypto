@@ -1,11 +1,18 @@
 {
   "name": "tcp-crypto",
-  "version": "0.9",
+  "version": "0.9.3",
   "keywords" : ["TCP", "crypto"], 
   "author": {
     "email": "lb.im@ya.ru"
   },
+  "repository" : { 
+    "type" : "git", 
+    "url" : "https://github.com/little-brother/tcp-crypto.git"
+  },
   "main": "tcp-crypto.js",
   "dependencies": {},
+  {
+    "license" : "MIT" 
+  },
   "homepage" : "http://little-brother.ru"	
 }

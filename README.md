@@ -1,7 +1,7 @@
-# tcp-crypto
-============
+# tcp-crypto<br />
 Provide encrypted point-to-point channel between server and client via tcp.
 Server stores unsended data inside special folder while client is disconnect.
+Client can send query and wait answer on callback.
 
 ## Install with [npm](npmjs.org)
 ``` bash
@@ -28,7 +28,10 @@ server.on('connection', function () {
 server.on('disconnection', () => console.log('disconnect'));
 server.on('error', (err) => console.log(err));
 server.on('send', (msg) => null);
-server.on('your-client-event', (data) => console.log(data));
+server.on('your-client-event', (data, msg_id) => console.log(data));
+server.on('your-client-event-with-callback', (data, msg_id) => 
+	server.send('your-client-event-with-callback', 'Hello callback again', msg_id); // send reply
+);
 
 // send console input
 let stdin = process.openStdin();
@@ -48,7 +51,8 @@ let client = new Client({
 
 client.on('connect', function () {
 	console.log('Connect');	
-	client.send('your-client-event', 'Hello from client');	
+	client.send('your-client-event', 'Hello from client');
+	client.send('your-client-event-with-callback', 'Hello callback', (res) => console.log(res));	
 });
 client.on('disconnect', () => console.log('Disconnect'));	
 server.on('send', (msg) => null);

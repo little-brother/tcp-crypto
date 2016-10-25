@@ -134,7 +134,14 @@ util.inherits(Client, EventEmitter);
 function Server (opts) { 
 	let server = this;
 	server.send = send;
-	let isBusy = true;	
+	let isBusy = true;
+
+	try {
+		fs.mkdirSync(opts.dir || './outbox');
+	} catch(err) {
+		if (err.code != 'EEXIST') 
+			throw err;
+	}	
 
 	let queue = fs.readdirSync(opts.dir)
 		.map((f) => { return {id: f.split('.')[0], event: f.split('.')[1], data: fs.readFileSync(`${opts.dir}/${f}`)};})
@@ -207,7 +214,7 @@ function Server (opts) {
 					return;
 				}
 		
-				server.emit(msg.event, msg.data, (result) => server.send(msg.event, result, msg.id));
+				server.emit(msg.event, msg.data, msg.id);
 			});	
 		});
 	
