@@ -58,7 +58,7 @@ function Client (opts) {
 				data: queue[0].data
 			}
 
-			socket.write(encode(JSON.stringify(msg), opts.cipher, opts.password) + '|', function (err) {
+			socket.write((!!opts.cipher ? encode(JSON.stringify(msg), opts.cipher, opts.password) : JSON.stringify(msg)) + '|', function (err) {
 				if (err)
 					return socket.emit('error', err);
 
@@ -95,7 +95,7 @@ function Client (opts) {
 
 				let msg;
 				try { 
-					msg = JSON.parse(decode(packet, opts.cipher, opts.password));
+					msg = JSON.parse(!!opts.cipher ? decode(packet, opts.cipher, opts.password) : packet);
 				} catch(err) { 
 					return socket.emit('error', err);
 				}
@@ -135,29 +135,43 @@ function Server (opts) {
 	let server = this;
 	server.send = send;
 	let isBusy = true;
+	
+	let queue = [];
+	if (!!opts.dir) {
+		try {
+			fs.mkdirSync(opts.dir); // default './outbox'
+		} catch(err) {
+			if (err.code != 'EEXIST') 
+				throw err;
+		}	
+	
+		queue = fs.readdirSync(opts.dir)
+			.map(function (f) { 
+				return {
+					id: f.split('.')[0], 
+					event: f.split('.')[1], 
+					data: fs.readFileSync(`${opts.dir}/${f}`)
+				};
+			})
+			.map(function (msg) { 
+				try { 
+					msg.data = JSON.parse(msg.data);
+				} catch (err) { 
+					server.emit('error', 'Error on parse ${msg.id}: ' + err.message); 
+					msg.data = ''
+				}; 
+				return msg;
+			})
+			.filter((msg) => !!msg.data);	
+		queue.add = function (msg) {
+			this.push(msg);
+			fs.writeFileSync(`${opts.dir}/${msg.id}.${msg.event}`, JSON.stringify(msg.data), {'flags': 'a'});
+		}
 
-	try {
-		fs.mkdirSync(opts.dir || './outbox');
-	} catch(err) {
-		if (err.code != 'EEXIST') 
-			throw err;
-	}	
-
-	let queue = fs.readdirSync(opts.dir)
-		.map((f) => { return {id: f.split('.')[0], event: f.split('.')[1], data: fs.readFileSync(`${opts.dir}/${f}`)};})
-		.map((msg) => { 
-			try { 
-				msg.data = JSON.parse(msg.data);
-			} catch (err) { 
-				server.emit('error', 'Error on parse ${msg.id}: ' + err.message); 
-				msg.data = ''
-			}; 
-			return msg;
-		})
-		.filter((msg) => !!msg.data);	
-	queue.add = function(msg) {
-		this.push(msg);
-		fs.writeFileSync(`${opts.dir}/${msg.id}.${msg.event}`, JSON.stringify(msg.data), {'flags': 'a'});
+	} else {
+		queue.add = function (msg) {
+			this.push(msg);
+		}
 	}
 
 	function send(event, data, id) {
@@ -182,7 +196,7 @@ function Server (opts) {
 				return (isBusy = false);
 	
 			if (socket)
-				socket.write(encode(JSON.stringify(queue[0]), opts.cipher, opts.password) + '|', () => { 
+				socket.write((!!opts.cipher ? encode(JSON.stringify(queue[0]), opts.cipher, opts.password) : JSON.stringify(queue[0])) + '|', () => { 
 					server.emit('send', queue[0]);
 					queue.shift();
 					isBusy = false; 
@@ -203,13 +217,13 @@ function Server (opts) {
 
 				let msg;
 				try { 
-					msg = JSON.parse(decode(packet, opts.cipher, opts.password));
+					msg = JSON.parse(!!opts.cipher ? decode(packet, opts.cipher, opts.password) : packet);
 				} catch(err) { 
 					return socket.emit('error', err);
 				}	
 				server.emit('receive', msg);
 				
-				if (msg.event == 'ACK') {
+				if (msg.event == 'ACK' && !!opts.dir) {
 					fs.unlink(`${opts.dir}/${msg.data.id}.${msg.data.event}`, (err) => err ? console.log(err) : null);
 					return;
 				}
